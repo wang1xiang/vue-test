@@ -57,6 +57,14 @@ export default new Router({
       // which is lazy-loaded when the route is visited.
       component: () => import(/* webpackChunkName: "about" */ './views/Es6Test.vue')
     },
+    {
+      path: '/todolist',
+      name: 'todolist',
+      // route level code-splitting
+      // this generates a separate chunk (about.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import(/* webpackChunkName: "about" */ './views/TodoList.vue')
+    },
     // { // 命名视图
     //   path: '/',
     //   components: {

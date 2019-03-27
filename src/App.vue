@@ -6,6 +6,7 @@
       <router-link to="/Router/12/ls">Router-param</router-link> |
       <router-link to="/watch">watch&computed</router-link> |
       <router-link to="/esTest">es6test</router-link> |
+      <router-link to="/todolist">todoList</router-link> |
     </div>
     <transition mode="out-in">
       <router-view/>
