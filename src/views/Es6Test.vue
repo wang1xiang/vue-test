@@ -8,6 +8,7 @@
         <a-button @click="getRest">扩展运算符</a-button>{{ restStr }} <br/>
         <a-button @click="getPromisr">promise对象</a-button> <br/>
         <a-button @click="iterator">for of</a-button> <br/>
+        <a-button @click="foo">async/await</a-button> <br/>
       </a-tab-pane>
       <a-tab-pane key="2" tab="es5">
         <p>json对象</p>
@@ -21,7 +22,25 @@
 </template>
 
 <script>
-
+/* 真正意义上解决异步回调的问题，同步流程表达异步操作
+  本质：Generator的语法糖
+  语法：
+    async function foo {
+      await 异步操作；
+      await 异步操作
+    }
+  特点：
+    1.不需要像Generator去调用next方法，通过await等待，当前的异步操作完成就继续往下执行
+    2.返回的promise对象，可以用then方法进行下一步操作
+    3.async取代Generator函数的星号*，await取代yield
+    4.更简单
+*/
+async function foo1() {
+  let s = await setTimeout(()=>{
+    console.log('222')
+  },2000)
+  return s    
+}
 export default {
   data () {
     return {
@@ -144,7 +163,12 @@ export default {
       for(let item of a) {
         console.log('--' + item)
       }
-    }
+    },
+    foo() {
+      let s = foo1()
+      console.log(s)
+    },
+    
   }
 }
 
