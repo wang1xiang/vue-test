@@ -9,6 +9,11 @@
         <a-button @click="getPromisr">promise对象</a-button> <br/>
         <a-button @click="iterator">for of</a-button> <br/>
         <a-button @click="foo">async/await</a-button> <br/>
+        <router-link to="/esTest/array">Array</router-link> |
+        <router-link to="/esTest/object">Object</router-link> |
+        <router-link to="/esTest/set">Set</router-link> |
+        <router-link to="/esTest/map">Map</router-link>
+        <router-view></router-view>
       </a-tab-pane>
       <a-tab-pane key="2" tab="es5">
         <p>json对象</p>
@@ -16,6 +21,7 @@
         <p>{{ everyFun }}</p>
         <p>{{ getJSONstirng }}</p>
         <p>{{ getJSONparse }}</p>
+        <a-button @click="forIn">for in</a-button> <br/>
       </a-tab-pane>
     </a-tabs>
   </div>
@@ -158,6 +164,16 @@ export default {
         console.log(error)
       })
     },
+    forIn () {
+      let a = [1,23,45,6,7,8,9]
+      for(let item in a) {
+        console.log('--' + item)
+      }
+      let b = {name: 'wang', age: 25, sex: '男'}
+      for(let item in b) {
+        console.log('--' + item)
+      }
+    }, //for in遍历键值/下标，for of遍历value/值
     iterator() { // 数组，字符串，arguments，set容器，map容器
       let a = [1,23,45,6,7,8,9]
       for(let item of a) {
@@ -167,8 +183,7 @@ export default {
     foo() {
       let s = foo1()
       console.log(s)
-    },
-    
+    }
   }
 }
 
