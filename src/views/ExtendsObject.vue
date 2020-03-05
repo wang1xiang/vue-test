@@ -10,29 +10,29 @@
 
 <script>
 export default {
-  data () {
+  data() {
     return {
-      target: [1,23,4,5,6],
+      target: [1, 23, 4, 5, 6],
       target1: { username: 'wang', age: 25 }
     }
   },
   methods: {
-    is () { // 判断两个数是否完全相等
+    is() { // 判断两个数是否完全相等
       // eslint-disable-next-line
       console.log(0 === -0)
       // eslint-disable-next-line
       console.log(NaN === NaN)
-      console.log(Object.is(0,-0))
-      console.log(Object.is(NaN,NaN))
+      console.log(Object.is(0, -0))
+      console.log(Object.is(NaN, NaN))
     },
-    assign () { // 将原对象属性复制到新对象
+    assign() { // 将原对象属性复制到新对象
       let obj = {}
       let obj1 = { name: 'wangxiang', age: '25' }
       let obj2 = { sex: '男' }
       Object.assign(obj, obj1, obj2)
       console.log(obj)
     },
-    proto () { // 直接操作——proto——属性
+    proto() { // 直接操作——proto——属性
       let obj = {}
       let obj1 = { money: 22222 }
       obj.__proto__ = obj1
@@ -60,13 +60,13 @@ export default {
       1.typeof返沪的数据类型：String, BNumber, Boolean, Undefined, Object, Function 
       2.Object.prototype.toString.call(obj)
     */
-    clone () {
-      let obj = {username: 'wangxiang'}
+    clone() {
+      let obj = { username: 'wangxiang' }
       let obj1 = Object.assign(obj)
       obj1.username = 'kobe'
       console.log(obj1)
 
-      let arr = [1,2,3,4,5]
+      let arr = [1, 2, 3, 4, 5]
       let arr1 = arr.concat()
       arr1[2] = 9
       console.log(arr)
@@ -83,24 +83,24 @@ export default {
       console.log(obj2)
     },
     // 定义检测对象数据类型的功能函数
-    checkType (target) {
+    checkType(target) {
       return Object.prototype.toString.call(target).slice(8, -1)
     },
-    checkClone () {
-      let arr = [1,23,4,5,6]
+    checkClone() {
+      let arr = [1, 23, 4, 5, 6]
       let arr1 = this.depthClone(arr)
       console.log(arr1)
       arr1[2] = 'sss'
       console.log(arr, arr1)
 
-      let obj = { name:'wang', age: 25 }
+      let obj = { name: 'wang', age: 25 }
       let obj1 = this.depthClone(obj)
       console.log(obj1)
       obj1.age = 18
       console.log(obj, obj1)
     },
     // 实现深度克隆
-    depthClone (target) {
+    depthClone(target) {
       // let toString = Object.prototype.toString
       // console.log(toString.call(new Date))
       // console.log(toString.call(new String))
@@ -111,7 +111,7 @@ export default {
       // 判断数据类型
       // 初始化变量result 成为最终克隆的数据
       let result, targetType = this.checkType(target)
-      if (targetType === 'Object' ) {
+      if (targetType === 'Object') {
         result = {}
       } else if (targetType === 'Array') {
         result = []
@@ -119,13 +119,13 @@ export default {
         return target
       }
       // 遍历目标对象
-      for ( let i in target ) {
+      for (let i in target) {
         // 获取遍历数据结构的每一项值
         let value = target[i]
         // 判断目标结构里的每一值是否存在对象/数组
-        if (this.checkType(value) === 'Object' || this.checkType(value) === 'Array' ) {
+        if (this.checkType(value) === 'Object' || this.checkType(value) === 'Array') {
           // 继续遍历获取到value值
-          result[i] = clone(value)
+          result[i] = this.clone(value)
         } else {
           result[i] = value
         }

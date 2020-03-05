@@ -1,21 +1,22 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/home">Home</router-link> |
-      <router-link to="/Router?id=10&name=zs">Router-query</router-link> |
-      <router-link to="/Router/12/ls">Router-param</router-link> |
-      <router-link to="/watch">watch&computed</router-link> |
-      <router-link to="/esTest">es6test</router-link> |
-      <router-link to="/todolist">todoList</router-link> |
+      <router-link to="/home">Home</router-link>|
+      <router-link to="/Router?id=10&name=zs">Router-query</router-link>|
+      <router-link to="/Router/12/ls">Router-param</router-link>|
+      <router-link to="/watch">watch&computed</router-link>|
+      <router-link to="/esTest">es6test</router-link>|
+      <router-link to="/todolist">todoList</router-link>|
+      <router-link to="/render">render</router-link>|
     </div>
     <transition mode="out-in">
-      <router-view/>
+      <router-view />
     </transition>
     <!-- <router-view style="background-color:darkcyan;height:200px"></router-view>  命名视图
     <div style="display:flex;padding:0;margin:0;height:600px">
       <router-view style="flex:2;background-color:lightcoral;" name="a" />
       <router-view style="flex:8;background-color:lawngreen;" name="b" />
-    </div> -->
+    </div>-->
   </div>
 </template>
 
@@ -43,7 +44,7 @@
   font-style: italic;
   font-style: 20px;
   text-decoration: underline;
-  background-color:darkcyan;
+  background-color: darkcyan;
 }
 .v-enter,
 .v-leave-to {

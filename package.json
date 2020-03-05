@@ -11,7 +11,13 @@
   },
   "dependencies": {
     "animate.css": "^3.7.0",
+    "ant-design-vue": "^1.4.4",
+    "babel-helper-vue-jsx-merge-props": "^2.0.3",
+    "babel-plugin-syntax-jsx": "^6.18.0",
+    "babel-plugin-transform-vue-jsx": "^3.7.0",
     "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "velocity-animate": "^1.5.2",
     "vue": "^2.6.6",
     "vue-router": "^3.0.1",
     "vuex": "^3.0.1",

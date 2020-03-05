@@ -21,8 +21,8 @@ export default new Router({
       name: 'home',
       component: Home,
       children: [
-        { path:'login', component: () => import(/* webpackChunkName: "about" */ './views/Login.vue') },
-        { path:'register', component: () => import(/* webpackChunkName: "about" */ './views/Register.vue') }
+        { path: 'login', component: () => import(/* webpackChunkName: "about" */ './views/Login.vue') },
+        { path: 'register', component: () => import(/* webpackChunkName: "about" */ './views/Register.vue') }
       ]
     },
     {
@@ -98,6 +98,14 @@ export default new Router({
       // this generates a separate chunk (about.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import(/* webpackChunkName: "about" */ './views/TodoList.vue')
+    },
+    {
+      path: '/render',
+      name: 'render',
+      // route level code-splitting
+      // this generates a separate chunk (about.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import(/* webpackChunkName: "about" */ './views/Render.vue')
     },
     // { // 命名视图
     //   path: '/',

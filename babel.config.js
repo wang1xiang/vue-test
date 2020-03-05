@@ -10,6 +10,7 @@ module.exports = {
         'libraryDirectory': 'lib',
         'style': 'css'
       }
-    ]
+    ],
+    ["transform-vue-jsx"]
   ]
 }
