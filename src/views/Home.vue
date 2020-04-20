@@ -3,17 +3,17 @@
     <input type="button" value="点击" @click="flag=!flag">
     <input type="button" value="点击,调用子组件方法" @click="getChildFunc">
     <!-- 使用animated.css实现动画  -->
-    <!-- <transition enter-active-class="rollIn" leave-active-class="rollOut" :duration="{ enter: 1000, leave: 1000 }">
+    <transition enter-active-class="rollIn" leave-active-class="rollOut" :duration="{ enter: 1000, leave: 1000 }">
       <img alt="Vue logo" v-if="flag" class="animated" src="../assets/logo.png">
-    </transition> -->
+    </transition>
     <!-- 使用钩子函数实现动画  -->
-    <transition 
+    <!-- <transition 
       @before-enter="beforeEnter"
       @enter="enter"
       @after-enter="afterEnter"
       >
       <div v-show="flag" class="ball"></div>
-    </transition>
+    </transition> -->
     <HelloWorld ref="hello" @func="show"></HelloWorld>  <!-- 绑定方法 -->
     <router-link to="/home/login">Login</router-link>
     <router-link to="/home/register">Register</router-link>

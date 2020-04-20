@@ -8,6 +8,7 @@
       <router-link to="/esTest">es6test</router-link>|
       <router-link to="/todolist">todoList</router-link>|
       <router-link to="/render">render</router-link>|
+      <router-link to="/test">test</router-link>|
     </div>
     <transition mode="out-in">
       <router-view />
