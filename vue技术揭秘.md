@@ -253,5 +253,373 @@ patch方法本身有四个参数，oldValue表示旧的VNode节点，不必须�
 
 patch主逻辑：首次渲染时，执行patch函数，传入的$el为id为app的DOM对象，vm.$el的赋值在mountComponent函数中，vnode对应的调用rnder函数的返回值，hydrating和removeOnly都为false；传入的oldValue为DOM contailer，所以isRealElemetn为true，调用emptyNodeAt方法转换为VNode对象，在调用createElm方法，作用是通过虚拟节点创建真实的DOM并插入它的父节点中，createComponent方法创建子组件，接下来判断vnode是否包含tag，如果包含，会简单的对tag的合法性在非生产环境下做校验，看是否是一个合法标签；然后调用平台DOM的操作创建一个占位符元素；接着调用createChildren方法创建子元素，调用invokeCreateHooks方法执行所有的create的钩子并把vnode push到insertedVnodeQueue中，最后insert方法把DOM插入到父节点，整个vnode树节点的插入时先子后父，insert方法调用一些nodeOps把子节点插入到父结点中，其实就是调用原生DOM的API进行DOM操作
 
+#### 组件化
 
+```js
+import Vue from 'vue'
+import App from './App.vue'
 
+var app = new Vue({
+  el: '#app',
+  // 这里的 h 是 createElement 方法
+  render: h => h(App)
+})
+```
+
+这里的render函数传入为一个组件，在createElement方法中，最终会调用_createElement方法，判断tag
+
+为component类型，通过createComponent方法创建vnode，定义在
+
+`src/core/vdom/create-component.js`中，分析源码推荐只分析核心流程，这里组件渲染有3个关键步骤
+
+##### 构造子类构造函数
+
+组件通常为一普通对象
+
+```js
+import HelloWorld from './components/HelloWorld'
+
+export default {
+  name: 'app',
+  components: {
+    HelloWorld
+  }
+}
+```
+
+这里export为对象，所有createComponent代码逻辑会执行到baseCtor.extend(Ctor)，这里baseCtor是Vue
+
+，initGlobalAPI中有定义`Vue.options._base = Vue`，Vue.extend函数作用是构造一个Vue的子类，使用原型继承的方式把一个纯对象转换为一个继承于Vue的构造器Sub并返回，然后扩展Sub对象的属性，如扩展options、添加全局API等，并且对配置中的props和computed做了初始化工作，最后对Sub构造函数做了缓存，避免多次执行Vue.extend的时候对同一个子组件重复构造，当我们去实例化Sub的时候，就会执行this_init方法
+
+##### 安装组件钩子函数
+
+```js
+installComponentHooks(data)
+```
+
+在初始化一个Component类型的VNode的过程中实现了几个钩子函数；installCOmponentHooks过程是把componentVNodeHooks的钩子函数合并到data.hook中，在VNode执行patch的过程中执行相关的钩子函数
+
+##### 实例化VNode
+
+```js
+const name = Ctor.options.name || tag
+const vnode = new VNode(
+  `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
+  data, undefined, undefined, undefined, context,
+  { Ctor, propsData, listeners, tag, children },
+  asyncFactory
+) // 组件的vnode没有children
+return vnode
+```
+
+通过createComponent返回的组件vnode，接着会执行vm._update方法，进而执行patch函数将VNode转换为真正的DOM节点
+
+#### patch
+
+patch过程就是调用createElm创建元素节点
+
+##### createComponent
+
+createComponent函数首先判断vnode.data，如果vnode是一个组件VNode，并且得到`i`就是`init`钩子函数，不考虑keepAlive通过createComponentInstanceForVnode创建一个Vue实例，然后调用$mount方法挂载子组件
+
+createComponentInstanceForVnode函数构造一个内部组件的参数，执行
+
+```js
+new vnode.componentOptions.Ctor(options) // 子组件的构造函数，继承于Vue的一个构造器Sub new Sub(options)
+```
+
+所以子组件的实例化是这个时机执行的，并且会执行实例的_init方法，在`src/core/instance/init.js`中
+
+_init函数执行后，接着执行$mount方法，最终调用mountComponent方法，进而执行vm_render方法，执行完vm_render生成VNode后，接着执行vm_update去渲染VNode
+
+_update关键代码，首先`vm._vnode=vnode`，这个vnode通过vm_render()返回的组件渲染VNode，vm._vnode和vm.$vnode是父子关系，vm._update.parent === vm.$parent
+
+接着就是调用`__patch__`渲染VNode，完成组件的整个patch过程后，最后执行insert(parentElm, vnode.elm, refElm)完成组件的DOM插入，如果patch过程创建了子组件，DOM插入先子后父
+
+#### 合并配置
+
+new Vue两种调用，一种代码主动调用new Vue(options)实例化一个VUe对象，另一种组件过程中内部通过new Vue(options)实例化子组件
+
+两种方式都会执行实例的_init(options)方法，首先执行merge options的逻辑，代码在`src/core/instance/init.js`中，不同场景对于options的合并逻辑不一样，并且传入的options值也有非常大的不同
+
+```js
+import Vue from 'vue'
+
+let childComp = {
+  template: '<div>{{msg}}</div>',
+  created() {
+    console.log('child created')
+  },
+  mounted() {
+    console.log('child mounted')
+  },
+  data() {
+    return {
+      msg: 'Hello Vue'
+    }
+  }
+}
+
+Vue.mixin({
+  created() {
+    console.log('parent created')
+  }
+})
+
+let app = new Vue({
+  el: '#app',
+  render: h => h(childComp)
+})
+```
+
+##### 外部调用场景
+
+当执行new Vue的时候，在执行this._init(options)的时候，会执行mergeOptions函数去合并options，实际就是合并Vue.options和options，Vue.options在initGlobal API(Vue)中定义，首先Vue.options创建一个空对象，遍历ASET_TYPES创建了components、directives、filter三个空对象，最后执行extend把一些内置组件扩展到Vueoptions.components上，Vue内置组件`<keep-alive><transiiton><transition-group>`
+
+mergeOptions主要功能是把parent和child这两个对象根据合并策略，合并为一个新对象并返回
+
+上面代码执行后，vm.$options的值如下
+
+```js
+vm.$options = {
+  components: { },
+  created: [
+    function created() {
+      console.log('parent created')
+    }
+  ],
+  directives: { },
+  filters: { },
+  _base: function Vue(options) {
+    // ...
+  },
+  el: "#app",
+  render: function (h) {
+    //...
+  }
+}
+```
+
+##### 组件场景
+
+由于组件的构造函数通过Vue.extend继承自Vue，合并的过程执行initInternalComponent(vm, options)逻辑，代码`src/core/instance/init.js`中，initInternalComponent只是简单的对象赋值，并不涉及递归、合并策略等复杂逻辑
+
+上面的代码执行完合并后
+
+```js
+vm.$options = {
+  parent: Vue /*父Vue实例*/,
+  propsData: undefined,
+  _componentTag: undefined,
+  _parentVnode: VNode /*父VNode实例*/,
+  _renderChildren:undefined,
+  __proto__: {
+    components: { },
+    directives: { },
+    filters: { },
+    _base: function Vue(options) {
+        //...
+    },
+    _Ctor: {},
+    created: [
+      function created() {
+        console.log('parent created')
+      }, function created() {
+        console.log('child created')
+      }
+    ],
+    mounted: [
+      function mounted() {
+        console.log('child mounted')
+      }
+    ],
+    data() {
+       return {
+         msg: 'Hello Vue'
+       }
+    },
+    template: '<div>{{msg}}</div>'
+  }
+}
+```
+
+#### 生命周期
+
+每个Vue实例在被创建前都要经历一系列的初始化过程，例如设置数据监听、编译模板、挂载实例到DOM、在数据变化时更新DOM等，同时在这个时期会运行生命周期钩子函数，可在特定场景下添加代码
+
+执行生命周期函数都是调用callHook方法，在`src/core/instance/lifecycle`中
+
+callHook根据传入的字符串hook，拿到vm.$options[hook]对应的回调函数数组，然后遍历执行，执行的时候把vm作为函数执行的上下文
+
+Vue合并options时，各个阶段的生命周期函数也被合并到vm.$options中，并且是个数组，因此callback的功能是调用某个生命周期钩子注册的所有回调函数
+
+##### beforeCreate & created
+
+`beforeCreate`和`created` 都是实例化Vue的阶段，在_init方法中执行，定义在`src/core/instance/init.js`，
+
+`beforeCreate`和`created`调用是在initState前后，initState作用是初始化props、data、methods、watch、computed属性，`beforeCreate`函数不能获取props、data的值，也不能访问methods中的函数
+
+这两个钩子函数中不能访问DOM，和后台交互这两个钩子函数都可以，如果访问props和data等数据就需要created钩子函数
+
+##### beforeMount & mounted
+
+beforeMount发生在mount，也就是DOM挂载之前，调用时机在mountComponent，定义在`src/core/instance/lifecycle.js`中，在执行vm._render渲染VNode之前，执行了beforeMount函数，执行完vm._update把VNode patch到真实DOM后，执行了mounted函数，这里会判断vm.$vnode是否为null，如果为null则表明这不是一次组件的初始化过程，而是通过外部new Vue初始化过程
+组件的VNode patch到DOM后，会执行invokeInsertHook函数，把insertedVnodeQueue里保存的钩子函数执行一遍，该函数后执行insert钩子函数，每个组件都是insert钩子函数中执行mounted钩子函数
+
+##### beforeUpdate $ updated
+
+数据更新的时候执行，beforeUpdate函数执行是在Watcher的before函数中，这里会判断组件是否mounted，updated函数执行是在flushSechedulerQueue函数调用的时候，定义在`src/core/observer/scheduler.js`
+
+updatedQueue是更新了的watcher数组，那么在callUpdatedHooks函数中，对这些数组遍历，只有满足watcher为vm._watcher以及组件已经mounted，才会执行updated函数
+
+##### beforeDestroy & destroyed
+
+beforeDestroy执行时机是在$destroy函数执行最开始的地方，接着执行了一些列销毁动作，包括从parent的$children中删除自身，删除watcher，当前渲染的VNode执行销毁函数等，执行完毕后在调用destroy函数
+
+在$destroy执行过程中，又会执行`vm.__patch__(vm._vnode, null)`触发子组件的销毁函数
+
+##### activated & deactivated
+
+#### 注册组件
+
+##### 全局注册
+
+全局注册使用`vm.component(tagName, options)`，它的定义过程发生在最开始初始化Vue的全局函数的时候，代码在`src/core/global-api/assets.js`中
+
+Vue初始化了3个全局函数，并且type为component且definition是一个对象的话，通过`this._options._base.extend`，相当于Vue.extend把这个对象转换成一个继承于Vue的构造函数，最后通过`this.options[type + 's'][id] = definition`把它挂载到`Vue.options.components`上
+
+接着在组件实例化过程中执行mergeOptions逻辑，把`Sub.options.components`合并到`vm.$options.components`上；然后在创建vnode的过程中，会执行_createElement方法，这里有一个判断逻辑
+
+`isDef(Ctor = resolveAsset(context.$options, 'components', tag))`，resolveAsset首先拿到assets，然后拿到assets[id]，顺序是先直接拿id，拿不到在编程驼峰的方式拿，如果还不存在驼峰基础上把首字母变成大写，所以Vue.component(id, definition) 全局注册组件时，id可以是连字符、驼峰或首字母大写的形式
+
+所以调用resolveAsset会拿到`vm.$options.components[tag]`，这样就可以在resolveAsset的时候拿到这个组件的构造函数，即作为createComponent的钩子函数
+
+##### 局部注册
+
+在组件内使用components选项做组件的局部注册，在组件的Vue的实例化阶段有一个合并option的逻辑，会把components合并到`vm.$options.components`上，这样就可以在resolveAsset的时候拿到这个组件的构造函数，并作为createComponent的钩子的参数
+
+局部注册和全局注册不同的是，全局注册会扩展到Vue.option下，所以在所有组件创建的时候，都会从全局的Vue.options.conponents扩展到当前组件的vm.$options.components下，这就是全局注册组件能被任意使用的原因。
+
+#### 异步组件
+
+减少首屏加载时体积，非首屏组件设计为异步组件，按需加载，Vue也原生支持异步组件的能力
+
+```js
+Vue.component('async-example', (resolve, reject) => {
+	// 这个特殊的require语法告诉webpack 自动将编译后的代码分割成不同的块 这些块通过Ajax请求自动下载
+	require(['./my-async-component'], resolve)
+})
+```
+
+示例中，Vue注册的组件不在是一个对象，而是一个工厂函数
+
+组件注册逻辑，由于组件定义并不是一个普通函数，所以不会执行Vue.extend的逻辑把它变成一哥组件的构造函数，但是它仍然可以执行到createComponent函数，createComponent函数由于传入的Ctor是一个函数，所以后执行resolveAsyncComponent(asyncFactory, baseCtor，context)方法，定义在`src/core/vdom/helpers/resolve-async-component.js`中
+
+resolveAsyncComponent实现了三种异步组件的创建方式，除了上面示例，还有两种，一种是Promise创建组件
+
+```js
+Vue.component(
+  'async-webpack-example',
+  // 该 `import` 函数返回一个 `Promise` 对象。
+  () => import('./my-async-component')
+)
+```
+
+另一种是高级异步组件
+
+```js
+const AsyncComp = () => ({
+  // 需要加载的组件。应当是一个 Promise
+  component: import('./MyComp.vue'),
+  // 加载中应当渲染的组件
+  loading: LoadingComp,
+  // 出错时渲染的组件
+  error: ErrorComp,
+  // 渲染加载中组件前的等待时间。默认：200ms。
+  delay: 200,
+  // 最长等待时间。超出此时间则渲染错误组件。默认：Infinity
+  timeout: 3000
+})
+Vue.component('async-example', AsyncComp)
+```
+
+##### 普通函数异步组件
+
+针对普通函数，if判断忽略，对于factory.contexts的判断，是考虑多个地方同时初始化一个异步组件，那么它的实际加载只有一次，接着进入实际加载逻辑，定义了forceRender、resolve和reject函数，resolve和reject函数用once做一层封装，利用闭包和一个标志位保证了它包装的函数只会执行一次
+
+接着执行const res = factory(resolve, reject)逻辑，这块是执行组件的工厂函数，通常会先发送请求去加载我们的异步组件的JS文件，拿到组件定义的res后，执行resolve(res)逻辑，它会先执行factory.resolved = ensureCtor(res, baseCtor)，目的是为了保证能找到异步组件JS定义的组件对象，并判断如果是普通对象，则调用Vue.extend转换为组件的构造函数
+
+resolve最后判断sync，如果sync为false，就会执行forceRender函数，它会遍历factory.contexts，拿到每一个调用异步组件的实例vm，执行vm.$forceUpdate()方法，$forceUpdate就是调用渲染watcher的update方法，让渲染watcher对应的回调函数执行，触发组件重新渲染，Vue是数据驱动，但异步组件加载没有数据变化，所以执行$forceUpdate强制组件重新渲染
+
+##### Promise异步组件
+
+webpack2+ 支持异步加载语法糖：`() => import('./my-async-component')`，执行完res = factory(resolve, reject)，返回的值是`import('./my-async-component')`，是一个Promise对象
+
+##### 高级异步组件
+
+由于异步组件加载需要动态加载JS，有一定网络延时，也有加载失败的情况，所以需要设置loading组件和error组件，在适当的时机渲染
+
+```js
+const AsyncComp = () => ({
+  // 需要加载的组件。应当是一个 Promise
+  component: import('./MyComp.vue'),
+  // 加载中应当渲染的组件
+  loading: LoadingComp,
+  // 出错时渲染的组件
+  error: ErrorComp,
+  // 渲染加载中组件前的等待时间。默认：200ms。
+  delay: 200,
+  // 最长等待时间。超出此时间则渲染错误组件。默认：Infinity
+  timeout: 3000
+})
+Vue.component('async-example', AsyncComp)
+```
+
+高级异步组件初始化逻辑与普通异步组件一样，执行res.component.then(resolve, reject)，异步组件加载成功，执行resolve，失败执行reject，由于异步组件加载是异步过程，接着同步执行了如下逻辑：
+
+先判断res.error是否定义了error组件，如果有的话赋值给factory.errorComp，res.loading的值赋值给factory.loadingComp，如果设置res.delay且为0，则设置factory.loading = true，否则延时delay，最后判断res.timout组件没有加载成功，执行reject
+
+在resolveAsyncComponent有一段逻辑
+
+```js
+sync = false
+return factory.loading
+  ? factory.loadingComp
+  : factory.resolved
+```
+
+如果delay设置为0，则直接渲染loading组件，否则延时delay执行forceRender，那么又会再执行一次resolveAsyncComponent，这时候会出现几种情况：
+
+###### 异步组件加载失败
+
+异步组件加载失败，这时候会把factory.error设置为true，同时执行forceRender再次执行到resolveAsyncComponent，这个时候就返回factory.errorComp直接渲染error组件
+
+###### 异步组件加载成功
+
+当异步组件加载成功，会执行resolve函数，把加载结果缓存到factory.resolved中，这时候sync已经为false，则执行forceRender再次执行到resolveAsyncComponent，这个时候返回factory.resolved，渲染成功的组件
+
+###### 异步组件加载中
+
+异步组件加载中，执行以下代码
+
+```js
+if (isTrue(factory.loading) && isDef(factory.loadingComp)) {
+  return factory.loadingComp
+}
+```
+
+返回factory.loadingComp，渲染loading组件
+
+###### 异步组件加载超时
+
+超时走到reject逻辑，之后逻辑和加载失败一样，渲染error组件
+
+##### 异步组件patch
+
+回到createComponent逻辑，如果第一次执行resolveAsyncComponent，除非使用高级异步组件0 delay去创建一个loading组件，否则返回都为undefined，接着通过createAsyncPlaceholder创建一个注释节点作为占位符，定义在`src/core/vdom/helpers/resolve-async-components.js`中
+
+实际就是创建一个占位的注释VNode，同时把asyncFactory和asyncMeta赋值给当前vnode
+
+当执行forceRender时，会触发组件的重新渲染，会再一次执行resolveAsyncComponent，这时候就会根据不同情况，可能返回loading、error或成功加载的异步组件，返回值部位undefined，因此会走正常的render、patch过程，与组件的第一次渲染过程不同，这个时候是存在新旧vnode的
+
+异步组件实现的本质是2次渲染，除了0 delay的高级异步组件第一次直接渲染laoding组件外，其它都是第一次渲染生成一个注释节点，当异步组件获取成功后，再通过forcerender强制重新渲染
